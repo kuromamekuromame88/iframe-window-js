@@ -9,7 +9,7 @@
 ライブラリのスクリプトを読み込みます。
 
 ```html
-<script src=""></script>
+<script src="https://kuromamekuromame88.github.io/iframe-window-js/src/IframeWindow.js"></script>
 ```
 
 window作成は以下のように行います。
