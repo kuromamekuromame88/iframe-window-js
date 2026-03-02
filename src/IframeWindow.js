@@ -3,7 +3,6 @@ class IframeWindow {
 
   win(name, option = {}) {
     const BAR_HEIGHT = 32;
-
     const state = {
       x: option.pos?.[0] ?? 0,
       y: option.pos?.[1] ?? 0,
@@ -14,12 +13,8 @@ class IframeWindow {
       prev: null,
       prevSize: null
     };
-
     const body = document.body;
-
     const win = document.createElement("div");
-    win.setAttribute("id", `iw-${name}`);
-    console.log(win.id);
     Object.assign(win.style, {
       position: "fixed",
       background: "#fff",
@@ -29,6 +24,7 @@ class IframeWindow {
       flexDirection: "column",
       overflow: "hidden"
     });
+    win.setAttribute("id", `iw-${name}`);
 
     function focus() {
       win.style.zIndex = ++IframeWindow.topZ;
@@ -38,14 +34,8 @@ class IframeWindow {
       win.style.left  = state.x + "px";
       win.style.top   = state.y + "px";
       win.style.width = state.w + "px";
-      if (state.minimized) {
-        win.style.height = BAR_HEIGHT + "px";
-      } else {
-        win.style.height = state.h + "px";
-      }
+      win.style.height = (state.minimized ? BAR_HEIGHT : state.h) + "px";
     }
-
-
     applyRect();
 
     // ===== Top Bar =====
@@ -67,18 +57,24 @@ class IframeWindow {
     title.textContent = name;
     title.style.padding = "30px";
 
+    const buttonStyle = {
+      margin: "2px",
+      padding: "0px",
+      height: "16px",
+      width: "16px",
+      border: "none",
+      background: "#dedede",
+    };
+
     const btnMin = document.createElement("button");
     btnMin.innerHTML = `<svg width="16" height="16"><line x1="3" y1="8" x2="13" y2="8" stroke="black"/></svg>`;
     const btnMax = document.createElement("button");
-    btnMax.innerHTML = `<svg width="16" height="16"><rect x="3" y="3" width="8" height="8" fill="none" stroke="black"/></svg>`;
+    btnMax.innerHTML = `<svg width="16" height="16"><rect x="4" y="4" width="8" height="8" fill="none" stroke="black"/></svg>`;
     const btnClose = document.createElement("button");
     btnClose.innerHTML = `<svg width="16" height="16"><line x1="4" y1="4" x2="12" y2="12" stroke="black"/><line x1="12" y1="4" x2="4" y2="12" stroke="black"/></svg>`;
 
     [btnMin, btnMax, btnClose].forEach(b => {
-      b.style.border = "none";
-      b.style.background = "#dedede";
-      b.width = "20px";
-      b.height = "20px";
+      Object.assign(b.style, buttonStyle);
       b.addEventListener("pointerdown", e => e.stopPropagation());
     });
 
@@ -101,6 +97,7 @@ class IframeWindow {
     const btns = document.createElement("div");
     btns.append(btnMin, btnMax, btnClose);
     bar.append(title, btns);
+    bar.style.gap = "2px";
 
     // ===== iframe =====
     const iframe = document.createElement("iframe");
@@ -119,8 +116,6 @@ class IframeWindow {
         iframe.srcdoc = content.con ?? "";
       }
     }
-
-
     setContent(option.content);
 
     // ===== Resize Handle =====
@@ -200,38 +195,42 @@ class IframeWindow {
 
     // ===== Controls =====
     function minimize() {
-      if (state.minimized) return;
-      state.prevSize = state.h;
+      if (state.minimized) restore();
+      state.minimized = true;
       iframe.style.display = "none";
       resize.style.display = "none";
-      win.style.height = BAR_HEIGHT + "px";
-      state.minimized = true;
+      applyRect();
     }
 
     function restore() {
       if (state.minimized) {
-        iframe.style.display = "block";
-        win.style.height = state.prevSize + "px";
-        resize.style.display = state.maximized ? "none" : "block";
         state.minimized = false;
+        iframe.style.display = "block";
+        resize.style.display = state.maximized ? "none" : "block";
       }
       if (state.maximized) {
         Object.assign(state, state.prev);
-        resize.style.display = "block";
         state.maximized = false;
-        applyRect();
+        resize.style.display = "block";
       }
+      applyRect();
     }
 
     function maximize() {
-      if (state.maximized) return;
-      state.prev = { x: state.x, y: state.y, w: state.w, h: state.h };
+      if(state.maximized) return;
+      if(state.minimized) restore();
+      state.prev = {
+        x: state.x,
+        y: state.y,
+        w: state.w,
+        h: state.h
+      };
       state.x = 0;
       state.y = 0;
       state.w = window.innerWidth;
       state.h = window.innerHeight;
-      resize.style.display = "none";
       state.maximized = true;
+      resize.style.display = "none";
       applyRect();
     }
 
@@ -256,7 +255,7 @@ class IframeWindow {
       applyRect();
     }
 
-    btnMin.onclick = minimize;
+    btnMin.onclick = () => state.minimized ? restore() : minimize();
     btnMax.onclick = () => state.maximized ? restore() : maximize();
     btnClose.onclick = () => win.remove();
 
